@@ -1,0 +1,1060 @@
+<Window x:Class="InkStudio.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:InkStudio.Controls"
+        mc:Ignorable="d"
+        Title="InkStudio - MPP 2.0 Pen &amp; Document Studio" 
+        Icon="Assets/app_icon.ico"
+        Height="850" Width="1350"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
+        Background="#F3F3F5">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Modern Header / Toolbar -->
+            <RowDefinition Height="*"/>    <!-- Canvas & Sidebar Work Area -->
+            <RowDefinition Height="Auto"/> <!-- Status / Telemetry Footer -->
+        </Grid.RowDefinitions>
+
+        <!-- TOP TOOLBAR -->
+        <Border x:Name="TopToolbar" Grid.Row="0" Background="#FFFFFF" BorderBrush="#E5E5E8" BorderThickness="0,0,0,1" Padding="8,5" Visibility="Collapsed">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" PanningMode="HorizontalOnly" Focusable="False">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/> <!-- 0. Files -->
+                        <ColumnDefinition Width="Auto"/> <!-- 1. Separator -->
+                        <ColumnDefinition Width="Auto"/> <!-- 2. Pens & Tools -->
+                        <ColumnDefinition Width="Auto"/> <!-- 3. Separator -->
+                        <ColumnDefinition Width="Auto"/> <!-- 4. Color Picker -->
+                        <ColumnDefinition Width="Auto"/> <!-- 5. Separator -->
+                        <ColumnDefinition Width="Auto"/> <!-- 6. Thickness & Undo/Redo/Clear -->
+                        <ColumnDefinition Width="Auto"/> <!-- 7. Separator -->
+                        <ColumnDefinition Width="*"/>    <!-- 8. MPP Badge, Touch, Pages -->
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 1. BRAND & FILE OPERATIONS -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Image Source="Assets/logo.png" Width="26" Height="26" Margin="0,0,6,0" 
+                               RenderOptions.BitmapScalingMode="HighQuality" ToolTip="InkStudio MPP 2.0"/>
+                        <TextBlock Text="InkStudio" FontSize="14" FontWeight="Bold" Foreground="#0078D4" VerticalAlignment="Center" Margin="0,0,10,0"/>
+
+                        <Button x:Name="BtnOpen" Click="BtnOpen_Click" Style="{StaticResource ModernButtonStyle}" ToolTip="Open PDF or PPTX" Padding="8,5">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="📂" Margin="0,0,4,0" FontSize="13"/>
+                                <TextBlock x:Name="TxtBtnOpen" Text="Open"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="BtnSave" Click="BtnSave_Click" Style="{StaticResource PrimaryButtonStyle}" Margin="2,1" ToolTip="Save as PDF with Drawings" Padding="9,5">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="💾" Margin="0,0,4,0" FontSize="13"/>
+                                <TextBlock x:Name="TxtBtnSave" Text="Save"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="BtnNewPage" Click="BtnNewPage_Click" Style="{StaticResource ModernButtonStyle}" ToolTip="New Blank Page" Padding="8,5">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="📄" Margin="0,0,4,0" FontSize="13"/>
+                                <TextBlock x:Name="TxtBtnNewPage" Text="New"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="BtnCloseDoc" Click="BtnCloseDoc_Click" Style="{StaticResource ModernButtonStyle}" ToolTip="Belgeyi Kapat ve Başlangıç Ekranına Dön" Padding="6,5">
+                            <TextBlock Text="✕" FontSize="12" Foreground="#888"/>
+                        </Button>
+                    </StackPanel>
+
+                    <!-- SEPARATOR -->
+                    <Rectangle Grid.Column="1" Width="1" Fill="#E0E0E0" Margin="8,3"/>
+
+                    <!-- 2. TOOL PICKER BUTTON & POPUP -->
+                    <Grid Grid.Column="2" VerticalAlignment="Center">
+                        <Button x:Name="BtnToolPicker" Click="BtnToolPicker_Click" Style="{StaticResource ModernButtonStyle}" 
+                                ToolTip="Çizim Aracı Seç (Kalem, Kurşun, Vurgu, Silgi, Kement)" Padding="8,5">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock x:Name="TxtCurrentToolIcon" Text="🖊️" FontSize="13" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TxtCurrentToolName" Text="Kalem" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <TextBlock Text=" ▾" FontSize="10" Foreground="#888" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Tools Dropdown Popup -->
+                        <Popup x:Name="PopupToolPicker" StaysOpen="False" AllowsTransparency="True" 
+                               PlacementTarget="{Binding ElementName=BtnToolPicker}" Placement="Bottom"
+                               PopupAnimation="Fade" VerticalOffset="6">
+                            <Border Background="#FFFFFF" BorderBrush="#E0E0E6" BorderThickness="1" CornerRadius="12" Padding="8" Width="230">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="20" ShadowDepth="4" Opacity="0.16" Direction="270" Color="#000000"/>
+                                </Border.Effect>
+                                 <StackPanel>
+                                    <TextBlock x:Name="TxtHeaderToolPicker" Text="Select Drawing Tool" FontSize="12" FontWeight="Bold" Foreground="#666" Margin="8,4,0,8"/>
+
+                                    <!-- Item 1: Dolma Kalem -->
+                                    <Button x:Name="BtnToolPen" Click="MenuTool_Click" Tag="Pen" Style="{StaticResource ToolMenuItemStyle}" ToolTip="MPP 2.0 Pürüzsüz Mürekkep &amp; Donanım Basıncı">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="🖊️" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock x:Name="TxtToolPenTitle" Text="Fountain Pen" FontWeight="SemiBold" FontSize="13"/>
+                                                <TextBlock x:Name="TxtToolPenDesc" Text="Smooth ink &amp; pressure" FontSize="11" Foreground="#777"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Button>
+
+                                    <!-- Item 2: Kurşun Kalem -->
+                                    <Button x:Name="BtnToolPencil" Click="MenuTool_Click" Tag="Pencil" Style="{StaticResource ToolMenuItemStyle}" ToolTip="MPP 2.0 Eğim &amp; Gölgelendirme Desteği">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="✏️" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock x:Name="TxtToolPencilTitle" Text="Pencil" FontWeight="SemiBold" FontSize="13"/>
+                                                <TextBlock x:Name="TxtToolPencilDesc" Text="Tilt &amp; shading support" FontSize="11" Foreground="#777"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Button>
+
+                                    <!-- Item 3: Fosforlu Kalem -->
+                                    <Button x:Name="BtnToolHighlighter" Click="MenuTool_Click" Tag="Highlighter" Style="{StaticResource ToolMenuItemStyle}" ToolTip="Saydam Fosforlu Metin Vurgulayıcı">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="🖍️" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock x:Name="TxtToolHighlighterTitle" Text="Highlighter" FontWeight="SemiBold" FontSize="13"/>
+                                                <TextBlock x:Name="TxtToolHighlighterDesc" Text="Translucent text marker" FontSize="11" Foreground="#777"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Button>
+
+                                    <!-- Item 4: Silgi -->
+                                    <Button x:Name="BtnToolEraser" Click="MenuTool_Click" Tag="Eraser" Style="{StaticResource ToolMenuItemStyle}" ToolTip="Mürekkep Çizgilerini Sil (Kalem arkası da siler)">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="🧹" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock x:Name="TxtToolEraserTitle" Text="Eraser" FontWeight="SemiBold" FontSize="13"/>
+                                                <TextBlock x:Name="TxtToolEraserDesc" Text="Erase ink strokes" FontSize="11" Foreground="#777"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Button>
+
+                                    <!-- Item 5: Kement -->
+                                    <Button x:Name="BtnToolLasso" Click="MenuTool_Click" Tag="Lasso" Style="{StaticResource ToolMenuItemStyle}" ToolTip="Çizimleri Seç, Taşı veya Boyutlandır">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="⭕" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock x:Name="TxtToolLassoTitle" Text="Lasso Selection" FontWeight="SemiBold" FontSize="13"/>
+                                                <TextBlock x:Name="TxtToolLassoDesc" Text="Select, move or resize drawings" FontSize="11" Foreground="#777"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
+                    </Grid>
+
+                    <!-- SEPARATOR -->
+                    <Rectangle Grid.Column="3" Width="1" Fill="#E0E0E0" Margin="8,3"/>
+
+                    <!-- 3. COLOR PICKER BUTTON & RICH POPUP -->
+                    <Grid Grid.Column="4" VerticalAlignment="Center">
+                        <Button x:Name="BtnColorPicker" Click="BtnColorPicker_Click" Style="{StaticResource ModernButtonStyle}" 
+                                ToolTip="Kalem Rengi Seç" Padding="8,5">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border x:Name="CurrentColorIndicator" Width="16" Height="16" CornerRadius="8" Background="#111111" BorderBrush="#888" BorderThickness="1.5" Margin="0,0,6,0"/>
+                                <TextBlock x:Name="TxtBtnColorPicker" Text="Color" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <TextBlock Text=" ▾" FontSize="10" Foreground="#888" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Color Palette Dropdown Popup -->
+                        <Popup x:Name="PopupColorPicker" StaysOpen="False" AllowsTransparency="True" 
+                               PlacementTarget="{Binding ElementName=BtnColorPicker}" Placement="Bottom"
+                               PopupAnimation="Fade" VerticalOffset="6">
+                            <Border Background="#FFFFFF" BorderBrush="#E0E0E6" BorderThickness="1" CornerRadius="12" Padding="14" Width="260">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="20" ShadowDepth="4" Opacity="0.16" Direction="270" Color="#000000"/>
+                                </Border.Effect>
+                                <StackPanel>
+                                    <TextBlock x:Name="TxtHeaderColorPicker" Text="Choose Pen Color" FontSize="13" FontWeight="Bold" Foreground="#333" Margin="0,0,0,10"/>
+                                    
+                                    <!-- Swatch Grid (5 columns x 5 rows = 25 rich vibrant colors) -->
+                                    <UniformGrid Columns="5" Margin="0,0,0,4">
+                                        <!-- Row 1: Grays / Monochrome -->
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#111111" Tag="#FF111111" ToolTip="Black" Click="ColorButton_Click"/>
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#424242" Tag="#FF424242" ToolTip="Charcoal" Click="ColorButton_Click"/>
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#757575" Tag="#FF757575" ToolTip="Gray" Click="ColorButton_Click"/>
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#BDBDBD" Tag="#FFBDBDBD" ToolTip="Light Gray" Click="ColorButton_Click"/>
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#FFFFFF" Tag="#FFFFFFFF" ToolTip="White" Click="ColorButton_Click"/>
+
+                                        <!-- Row 2: Blues -->
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#002060" Tag="#FF002060" ToolTip="Midnight Blue" Click="ColorButton_Click"/>
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#005A9E" Tag="#FF005A9E" ToolTip="Dark Blue" Click="ColorButton_Click"/>
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#0078D4" Tag="#FF0078D4" ToolTip="Vibrant Blue" Click="ColorButton_Click"/>
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#00B7C3" Tag="#FF00B7C3" ToolTip="Turquoise" Click="ColorButton_Click"/>
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#69AFE5" Tag="#FF69AFE5" ToolTip="Sky Blue" Click="ColorButton_Click"/>
+
+                                        <!-- Row 3: Reds & Warm -->
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#A80000" Tag="#FFA80000" ToolTip="Burgundy" Click="ColorButton_Click"/>
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#D13438" Tag="#FFD13438" ToolTip="Red" Click="ColorButton_Click"/>
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#EA4300" Tag="#FFEA4300" ToolTip="Orange" Click="ColorButton_Click"/>
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#FF8C00" Tag="#FFFF8C00" ToolTip="Amber" Click="ColorButton_Click"/>
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#FFB900" Tag="#FFFFB900" ToolTip="Yellow / Highlighter" Click="ColorButton_Click"/>
+
+                                        <!-- Row 4: Greens -->
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#107C41" Tag="#FF107C41" ToolTip="Dark Emerald" Click="ColorButton_Click"/>
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#1E8E3E" Tag="#FF1E8E3E" ToolTip="Green" Click="ColorButton_Click"/>
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#28A745" Tag="#FF28A745" ToolTip="Bright Green" Click="ColorButton_Click"/>
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#5C8B22" Tag="#FF5C8B22" ToolTip="Olive Green" Click="ColorButton_Click"/>
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#85E0A3" Tag="#FF85E0A3" ToolTip="Mint Green" Click="ColorButton_Click"/>
+
+                                        <!-- Row 5: Purples & Pinks -->
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#4F2D7F" Tag="#FF4F2D7F" ToolTip="Deep Purple" Click="ColorButton_Click"/>
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#744DA9" Tag="#FF744DA9" ToolTip="Purple" Click="ColorButton_Click"/>
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#B4009E" Tag="#FFB4009E" ToolTip="Magenta" Click="ColorButton_Click"/>
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#E3008C" Tag="#FFE3008C" ToolTip="Vibrant Pink" Click="ColorButton_Click"/>
+                                        <Button Style="{StaticResource ColorSwatchStyle}" Background="#875841" Tag="#FF875841" ToolTip="Brown" Click="ColorButton_Click"/>
+                                    </UniformGrid>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
+                    </Grid>
+
+                    <!-- SEPARATOR -->
+                    <Rectangle Grid.Column="5" Width="1" Fill="#E0E0E0" Margin="8,3"/>
+
+                    <!-- 4. THICKNESS & UNDO / REDO / CLEAR -->
+                    <StackPanel Grid.Column="6" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Thickness Controls with - / + buttons -->
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,6,0">
+                            <TextBlock x:Name="TxtLblThickness" Text="Thickness:" VerticalAlignment="Center" Margin="0,0,4,0" FontSize="12" Foreground="#666"/>
+                            <Button x:Name="BtnDecreaseWidth" Click="BtnDecreaseWidth_Click" 
+                                    Style="{StaticResource ModernButtonStyle}" 
+                                    ToolTip="Decrease Thickness (-2)" Padding="5,1" Margin="0,0,2,0" MinWidth="24" Height="26">
+                                <TextBlock Text="−" FontSize="14" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Button>
+                            <Slider x:Name="SliderWidth" Minimum="1" Maximum="30" Value="3" Width="55" 
+                                    ValueChanged="SliderWidth_ValueChanged" VerticalAlignment="Center"
+                                    ToolTip="Stroke Thickness"/>
+                            <Button x:Name="BtnIncreaseWidth" Click="BtnIncreaseWidth_Click" 
+                                    Style="{StaticResource ModernButtonStyle}" 
+                                    ToolTip="Increase Thickness (+2)" Padding="5,1" Margin="2,0,4,0" MinWidth="24" Height="26">
+                                <TextBlock Text="+" FontSize="14" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Button>
+                            <TextBlock x:Name="TxtWidthValue" Text="3 pt" VerticalAlignment="Center" Margin="2,0,0,0" FontSize="12" FontWeight="SemiBold" Width="32"/>
+                        </StackPanel>
+
+                        <Button x:Name="BtnUndo" Click="BtnUndo_Click" Style="{StaticResource ModernButtonStyle}" ToolTip="Undo (Ctrl+Z)" Padding="6,5">
+                            <TextBlock Text="↩️" FontSize="12"/>
+                        </Button>
+                        <Button x:Name="BtnRedo" Click="BtnRedo_Click" Style="{StaticResource ModernButtonStyle}" ToolTip="Redo (Ctrl+Y)" Padding="6,5">
+                            <TextBlock Text="↪️" FontSize="12"/>
+                        </Button>
+                        <Button x:Name="BtnClear" Click="BtnClear_Click" Style="{StaticResource ModernButtonStyle}" ToolTip="Clear Page" Padding="6,5">
+                            <TextBlock Text="🗑️" FontSize="12" Foreground="#C42B1C"/>
+                        </Button>
+                    </StackPanel>
+
+                    <!-- SEPARATOR -->
+                    <Rectangle Grid.Column="7" Width="1" Fill="#E0E0E0" Margin="8,3"/>
+
+                    <!-- 5. RIGHT SIDE (LANGUAGE SWITCHER & TOUCH TOGGLE & SIDEBAR) -->
+                    <StackPanel Grid.Column="8" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="8,0,0,0">
+                        <!-- Language Switcher in Main Toolbar -->
+                        <Grid Margin="0,0,6,0">
+                            <Button x:Name="BtnToolbarLang" Click="BtnToolbarLang_Click" Style="{StaticResource ModernButtonStyle}" 
+                                    ToolTip="Language / Dil" Padding="7,4">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock x:Name="TxtToolbarLangFlag" Text="🇬🇧" Margin="0,0,4,0" FontSize="12" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="TxtToolbarLangCode" Text="EN" FontSize="11" FontWeight="Bold" Foreground="#475569" VerticalAlignment="Center"/>
+                                    <TextBlock Text=" ▾" FontSize="9" Foreground="#94A3B8" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                                </StackPanel>
+                            </Button>
+                            <Popup x:Name="PopupToolbarLang" StaysOpen="False" AllowsTransparency="True"
+                                   PlacementTarget="{Binding ElementName=BtnToolbarLang}" Placement="Bottom"
+                                   PopupAnimation="Fade" VerticalOffset="4">
+                                <Border Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="4" Width="135">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="16" ShadowDepth="3" Opacity="0.12" Direction="270" Color="#000000"/>
+                                    </Border.Effect>
+                                    <StackPanel>
+                                        <Button Click="BtnLang_Click" Tag="en" Style="{StaticResource ToolMenuItemStyle}" Padding="6,4">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="🇬🇧" Margin="0,0,8,0"/>
+                                                <TextBlock Text="English" FontWeight="SemiBold" FontSize="12"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Click="BtnLang_Click" Tag="tr" Style="{StaticResource ToolMenuItemStyle}" Padding="6,4">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="🇹🇷" Margin="0,0,8,0"/>
+                                                <TextBlock Text="Türkçe" FontWeight="SemiBold" FontSize="12"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Click="BtnLang_Click" Tag="de" Style="{StaticResource ToolMenuItemStyle}" Padding="6,4">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="🇩🇪" Margin="0,0,8,0"/>
+                                                <TextBlock Text="Deutsch" FontWeight="SemiBold" FontSize="12"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Click="BtnLang_Click" Tag="ru" Style="{StaticResource ToolMenuItemStyle}" Padding="6,4">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="🇷🇺" Margin="0,0,8,0"/>
+                                                <TextBlock Text="Русский" FontWeight="SemiBold" FontSize="12"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Click="BtnLang_Click" Tag="zh" Style="{StaticResource ToolMenuItemStyle}" Padding="6,4">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="🇨🇳" Margin="0,0,8,0"/>
+                                                <TextBlock Text="中文" FontWeight="SemiBold" FontSize="12"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
+                        </Grid>
+
+                        <Border Background="#F0F4F9" BorderBrush="#D2E3FC" BorderThickness="1" CornerRadius="8" Padding="2" Margin="0,0,6,0">
+                            <CheckBox x:Name="CheckTouchInking" Click="CheckTouchInking_Click" 
+                                      Content="🖐️ Touch Inking" VerticalAlignment="Center" Margin="6,2"
+                                      FontSize="11" Foreground="#333" IsChecked="False"
+                                      ToolTip="When enabled, finger draws strokes. When disabled, finger pans and zooms."/>
+                        </Border>
+
+                        <Button x:Name="BtnToggleSidebar" Click="BtnToggleSidebar_Click" Style="{StaticResource ModernButtonStyle}" ToolTip="Show / Hide Page Thumbnails" Padding="8,5">
+                            <TextBlock x:Name="TxtBtnToggleSidebar" Text="📑 Pages" FontSize="12"/>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
+        </Border>
+
+        <!-- WELCOME SCREEN (Shown on startup when no document is open) -->
+        <Grid x:Name="WelcomeScreen" Grid.Row="1" Background="#F8F9FA" Visibility="Visible">
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center" Padding="30" MaxWidth="920">
+                <StackPanel HorizontalAlignment="Center">
+                    <!-- App Logo with drop shadow -->
+                    <Border Width="92" Height="92" CornerRadius="22" Background="#FFFFFF" HorizontalAlignment="Center" Margin="0,0,0,22">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="24" ShadowDepth="4" Opacity="0.10" Direction="270" Color="#000000"/>
+                        </Border.Effect>
+                        <Image Source="Assets/logo.png" Width="70" Height="70" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               RenderOptions.BitmapScalingMode="HighQuality"/>
+                    </Border>
+
+                    <!-- App Title & Subtitle -->
+                    <TextBlock Text="InkStudio" FontSize="34" FontWeight="Bold" Foreground="#1E293B" HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="TxtWelcomeSubtitle" Text="MPP 2.0 Pen &amp; Document Studio" FontSize="15" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,6,0,16"/>
+
+                    <!-- Language Selector Bar (English [Default], Türkçe, Deutsch, Русский, 中文) -->
+                    <Border HorizontalAlignment="Center" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" 
+                            CornerRadius="20" Padding="4" Margin="0,0,0,22">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.06" Direction="270" Color="#000000"/>
+                        </Border.Effect>
+                        <StackPanel Orientation="Horizontal">
+                            <!-- English (Default) -->
+                            <Button x:Name="BtnLangEn" Click="BtnLang_Click" Tag="en" Style="{StaticResource LangPillButtonStyle}" Background="#2563EB" Margin="0,0,2,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🇬🇧" Margin="0,0,5,0" FontSize="13" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="TxtLangEn" Text="English" FontWeight="Bold" Foreground="#FFFFFF" FontSize="12" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <!-- Türkçe -->
+                            <Button x:Name="BtnLangTr" Click="BtnLang_Click" Tag="tr" Style="{StaticResource LangPillButtonStyle}" Margin="0,0,2,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🇹🇷" Margin="0,0,5,0" FontSize="13" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="TxtLangTr" Text="Türkçe" FontWeight="Medium" Foreground="#475569" FontSize="12" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <!-- Deutsch -->
+                            <Button x:Name="BtnLangDe" Click="BtnLang_Click" Tag="de" Style="{StaticResource LangPillButtonStyle}" Margin="0,0,2,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🇩🇪" Margin="0,0,5,0" FontSize="13" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="TxtLangDe" Text="Deutsch" FontWeight="Medium" Foreground="#475569" FontSize="12" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <!-- Русский -->
+                            <Button x:Name="BtnLangRu" Click="BtnLang_Click" Tag="ru" Style="{StaticResource LangPillButtonStyle}" Margin="0,0,2,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🇷🇺" Margin="0,0,5,0" FontSize="13" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="TxtLangRu" Text="Русский" FontWeight="Medium" Foreground="#475569" FontSize="12" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <!-- 中文 -->
+                            <Button x:Name="BtnLangZh" Click="BtnLang_Click" Tag="zh" Style="{StaticResource LangPillButtonStyle}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🇨🇳" Margin="0,0,5,0" FontSize="13" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="TxtLangZh" Text="中文" FontWeight="Medium" Foreground="#475569" FontSize="12" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Action Cards Container (3 Cards) -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <!-- Card 1: Yeni PDF Oluştur -->
+                        <Button x:Name="BtnWelcomeNew" Click="BtnWelcomeNew_Click" Style="{StaticResource WelcomeCardButtonStyle}">
+                            <Grid>
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Border Width="56" Height="56" CornerRadius="28" Background="#EFF6FF" HorizontalAlignment="Center" Margin="0,0,0,12">
+                                        <TextBlock Text="📄" FontSize="26" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock x:Name="TxtCardNewTitle" Text="Create New PDF" FontSize="16" FontWeight="Bold" Foreground="#0078D4" HorizontalAlignment="Center" Margin="0,0,0,5"/>
+                                    <TextBlock x:Name="TxtCardNewDesc" Text="Start drawing and taking notes on a blank page" FontSize="11" Foreground="#64748B" TextWrapping="Wrap" TextAlignment="Center" Width="210"/>
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <!-- Card 2: Dosya Aç -->
+                        <Button x:Name="BtnWelcomeOpen" Click="BtnWelcomeOpen_Click" Style="{StaticResource WelcomeCardButtonStyle}">
+                            <Grid>
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Border Width="56" Height="56" CornerRadius="28" Background="#ECFDF5" HorizontalAlignment="Center" Margin="0,0,0,12">
+                                        <TextBlock Text="📂" FontSize="26" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock x:Name="TxtCardOpenTitle" Text="Open File" FontSize="16" FontWeight="Bold" Foreground="#059669" HorizontalAlignment="Center" Margin="0,0,0,5"/>
+                                    <TextBlock x:Name="TxtCardOpenDesc" Text="Open a PDF or PowerPoint document from your device" FontSize="11" Foreground="#64748B" TextWrapping="Wrap" TextAlignment="Center" Width="210"/>
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <!-- Card 3: Ders Kaydı -->
+                        <Button x:Name="BtnWelcomeRecord" Click="BtnWelcomeRecord_Click" Style="{StaticResource WelcomeCardButtonStyle}">
+                            <Grid>
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Border Width="56" Height="56" CornerRadius="28" Background="#FEF2F2" HorizontalAlignment="Center" Margin="0,0,0,12">
+                                        <TextBlock Text="🎥" FontSize="26" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock x:Name="TxtCardRecordTitle" Text="Lecture Recording" FontSize="16" FontWeight="Bold" Foreground="#DC2626" HorizontalAlignment="Center" Margin="0,0,0,5"/>
+                                    <TextBlock x:Name="TxtCardRecordDesc" Text="Record lectures on 16:9 board or PDF with camera and microphone" FontSize="11" Foreground="#64748B" TextWrapping="Wrap" TextAlignment="Center" Width="210"/>
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+                    </StackPanel>
+
+                    <!-- Feature Badges -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,28,0,0">
+                        <Border Background="#F1F5F9" CornerRadius="12" Padding="12,6" Margin="6,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🖊️" Margin="0,0,6,0" FontSize="12"/>
+                                <TextBlock x:Name="TxtBadgePressure" Text="4096 Levels MPP Hardware Pressure" FontSize="12" Foreground="#475569" FontWeight="Medium"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Background="#F1F5F9" CornerRadius="12" Padding="12,6" Margin="6,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="📐" Margin="0,0,6,0" FontSize="12"/>
+                                <TextBlock x:Name="TxtBadgeTilt" Text="Tilt Detection" FontSize="12" Foreground="#475569" FontWeight="Medium"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Background="#F1F5F9" CornerRadius="12" Padding="12,6" Margin="6,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🛡️" Margin="0,0,6,0" FontSize="12"/>
+                                <TextBlock x:Name="TxtBadgePalm" Text="Palm Rejection" FontSize="12" Foreground="#475569" FontWeight="Medium"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- MAIN WORK AREA (Document & Ink Canvas) -->
+        <Grid x:Name="WorkspaceGrid" Grid.Row="1" Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="SidebarColumn" Width="260"/> <!-- Thumbnails & Lecture Recording Sidebar -->
+                <ColumnDefinition Width="*"/>   <!-- Main Document Canvas -->
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT SIDEBAR: TOP = THUMBNAILS, BOTTOM = LECTURE RECORDING -->
+            <Border Grid.Column="0" Background="#FFFFFF" BorderBrush="#E5E5E8" BorderThickness="0,0,1,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <!-- Top Half: Thumbnails -->
+                        <RowDefinition Height="*" MinHeight="130"/>
+                        <!-- Splitter Line -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Bottom Half: Lecture Recording Studio Panel -->
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- TOP HALF: THUMBNAILS LIST -->
+                    <Grid Grid.Row="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <Border Grid.Row="0" Padding="12,8" BorderBrush="#EFEFEF" BorderThickness="0,0,0,1" Background="#FAFAFC">
+                            <TextBlock x:Name="TxtSidebarPagesTitle" Text="Pages &amp; Slides" FontSize="12" FontWeight="Bold" Foreground="#475569"/>
+                        </Border>
+
+                        <ListBox x:Name="ListThumbnails" Grid.Row="1" BorderThickness="0" Background="Transparent"
+                                 SelectionChanged="ListThumbnails_SelectionChanged"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="4,4" CornerRadius="6" Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="1" Padding="4">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Border CornerRadius="4" BorderBrush="#CCC" BorderThickness="1" Background="#FFF" MaxWidth="190" MaxHeight="120">
+                                                <Image Source="{Binding Thumbnail}" Stretch="Uniform"/>
+                                            </Border>
+                                            <TextBlock Text="{Binding PageDisplay}" 
+                                                       HorizontalAlignment="Center" Margin="0,3,0,0" FontSize="11" FontWeight="SemiBold" Foreground="#666"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+
+                    <!-- SEPARATOR (Only visible in Lecture Recording Mode) -->
+                    <Border x:Name="SepLectureRecording" Grid.Row="1" Height="1" Background="#E2E8F0" Visibility="Collapsed"/>
+
+                    <!-- BOTTOM HALF: LECTURE RECORDING STUDIO (Only visible in Lecture Recording Mode) -->
+                    <Border x:Name="PanelLectureRecording" Grid.Row="2" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="10,8" Visibility="Collapsed">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel>
+                                <!-- Panel Header & Status Badge -->
+                                <Grid Margin="0,0,0,6">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock x:Name="TxtHeaderLectureRecording" Text="🎥 Lecture Recording" FontSize="13" FontWeight="Bold" Foreground="#1E293B"/>
+                                    </StackPanel>
+
+                                    <!-- Status Badge & Digital Timer -->
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <Border x:Name="BadgeRecordingStatus" Background="#E2E8F0" CornerRadius="10" Padding="7,2" Margin="0,0,6,0">
+                                            <TextBlock x:Name="TxtRecordingStatus" Text="● READY" FontSize="10" FontWeight="Bold" Foreground="#475569"/>
+                                        </Border>
+                                        <TextBlock x:Name="TxtRecordingDuration" Text="00:00:00" FontSize="12" FontWeight="Bold" Foreground="#DC2626" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Camera & Recording Preview Box -->
+                                <Border CornerRadius="8" Background="#0F172A" BorderBrush="#CBD5E1" BorderThickness="1" 
+                                        Height="125" Margin="0,0,0,4" ClipToBounds="True">
+                                    <Grid>
+                                        <!-- Mode 1: Kayıt Önizleme (Canlı) - Live Composite of Document Paper + PIP Camera in selected corner -->
+                                        <Grid x:Name="PanelLiveRecordingPreview" Visibility="Visible" SizeChanged="PanelLiveRecordingPreview_SizeChanged">
+                                            <!-- Centered Proportional Video Viewport matching exact selected recording aspect ratio -->
+                                            <Border x:Name="LivePreviewViewport"
+                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                    Background="#020617" BorderBrush="#38BDF8" BorderThickness="1.5"
+                                                    CornerRadius="3" ClipToBounds="True">
+                                                <Grid>
+                                                    <!-- Live Document Mirror via VisualBrush -->
+                                                    <Rectangle HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                                        <Rectangle.Fill>
+                                                            <VisualBrush x:Name="LiveDocBrush" Visual="{Binding ElementName=DocumentPaperBorder}" Stretch="Fill"/>
+                                                        </Rectangle.Fill>
+                                                    </Rectangle>
+
+                                                    <!-- Live PIP Camera positioned in chosen corner of the actual recording frame -->
+                                                    <Border x:Name="PipCameraContainer" 
+                                                            HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                                            Width="45" Height="25" Margin="3"
+                                                            CornerRadius="3" BorderBrush="#38BDF8" BorderThickness="1.5"
+                                                            Background="#1E293B" ClipToBounds="True">
+                                                        <Image x:Name="ImgPipRecorderPreview" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                               RenderTransformOrigin="0.5, 0.5">
+                                                            <Image.RenderTransform>
+                                                                <ScaleTransform x:Name="PreviewPipCameraScale" ScaleX="-1" ScaleY="1"/>
+                                                            </Image.RenderTransform>
+                                                        </Image>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                        </Grid>
+
+                                        <!-- Mode 2: Sadece Kamera (Full Isolated Camera) -->
+                                        <Grid x:Name="PanelFullCameraPreview" Visibility="Collapsed">
+                                            <Image x:Name="ImgRecorderPreview" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   RenderTransformOrigin="0.5, 0.5">
+                                                <Image.RenderTransform>
+                                                    <ScaleTransform x:Name="PreviewCameraScale" ScaleX="-1" ScaleY="1"/>
+                                                </Image.RenderTransform>
+                                            </Image>
+                                        </Grid>
+
+                                        <!-- Placeholder when no image -->
+                                        <StackPanel x:Name="PanelPreviewPlaceholder" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Visible">
+                                            <TextBlock Text="📷" FontSize="22" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                                            <TextBlock x:Name="TxtPreviewPlaceholder" Text="Camera Preview" FontSize="10.5" Foreground="#94A3B8" HorizontalAlignment="Center"/>
+                                        </StackPanel>
+
+                                        <!-- Top-Left / Top-Right Controls: Mode Switcher, Mirror & Layout -->
+                                        <Grid VerticalAlignment="Top" Margin="4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Mode Switcher -->
+                                            <Border Grid.Column="0" Background="#DD0F172A" CornerRadius="4" Padding="2">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Button x:Name="BtnPreviewModeLive" Click="BtnPreviewMode_Click" Tag="Live"
+                                                            Background="#2563EB" BorderThickness="0" Padding="5,2" Cursor="Hand" Margin="0,0,2,0"
+                                                            ToolTip="Live Recording Preview">
+                                                        <TextBlock x:Name="TxtBtnPreviewModeLive" Text="🎬 Live" FontSize="8.5" Foreground="#FFFFFF" FontWeight="Bold"/>
+                                                    </Button>
+                                                    <Button x:Name="BtnPreviewModeCam" Click="BtnPreviewMode_Click" Tag="Camera"
+                                                            Background="Transparent" BorderThickness="0" Padding="5,2" Cursor="Hand"
+                                                            ToolTip="Camera Only">
+                                                        <TextBlock x:Name="TxtBtnPreviewModeCam" Text="📷 Camera" FontSize="8.5" Foreground="#94A3B8" FontWeight="SemiBold"/>
+                                                    </Button>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- Mirror & Layout Buttons -->
+                                            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                                <Button x:Name="BtnToggleMirror" Click="BtnToggleMirror_Click" 
+                                                        ToolTip="Mirror Camera"
+                                                        Background="#DD0F172A" BorderBrush="#475569" BorderThickness="1"
+                                                        Padding="4,2" Margin="0,0,3,0" Cursor="Hand">
+                                                    <TextBlock x:Name="TxtMirrorIcon" Text="🪞 Mirror" FontSize="8.5" Foreground="#38BDF8" FontWeight="SemiBold"/>
+                                                </Button>
+
+                                                <Button x:Name="BtnToggleLayoutPreview" Click="BtnToggleLayoutPreview_Click"
+                                                        ToolTip="Camera Layout &amp; Size"
+                                                        Background="#DD0F172A" BorderBrush="#475569" BorderThickness="1"
+                                                        Padding="4,2" Cursor="Hand">
+                                                    <TextBlock x:Name="TxtBtnToggleLayoutPreview" Text="📐 Layout" FontSize="8.5" Foreground="#FBBF24" FontWeight="SemiBold"/>
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <!-- Bottom Info Watermark -->
+                                        <Border x:Name="BadgeCameraPlacement" HorizontalAlignment="Left" VerticalAlignment="Bottom" Background="#DD0F172A" CornerRadius="4" Padding="5,2" Margin="4">
+                                            <TextBlock x:Name="TxtCameraPlacementBadge" Text="[16:9] Camera: Bottom-Right (%22, 16:9)" FontSize="8.5" Foreground="#E2E8F0" FontWeight="SemiBold"/>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+
+                                <!-- EXPANDABLE CAMERA POSITION & SIZE SETTING PANEL -->
+                                <Border x:Name="PanelCameraLayout" Background="#F1F5F9" BorderBrush="#CBD5E1" BorderThickness="1" 
+                                        CornerRadius="6" Padding="6" Margin="0,0,0,6" Visibility="Collapsed">
+                                    <StackPanel>
+                                        <TextBlock x:Name="TxtCameraLayoutTitle" Text="📐 Camera Recording Position &amp; Size" FontSize="10.5" FontWeight="Bold" Foreground="#334155" Margin="0,0,0,4"/>
+
+                                        <!-- Interactive Miniature Proportional Canvas Preview (Adapts to recording aspect ratio) -->
+                                        <Border Height="82" Background="#E2E8F0" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="4" Margin="0,0,0,5">
+                                            <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <Border x:Name="MiniSlideFrame" Width="135" Height="76"
+                                                        Background="#FFFFFF" BorderBrush="#94A3B8" BorderThickness="1.5" CornerRadius="3" ClipToBounds="True">
+                                                    <Grid x:Name="MiniSlideLayoutGrid">
+                                                        <!-- Aspect ratio text -->
+                                                        <TextBlock x:Name="TxtMiniSlideAspect" Text="16:9 Slide" FontSize="8.5" Foreground="#94A3B8" FontWeight="SemiBold"
+                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                                                        <!-- Interactive 4 Corner Click Zones -->
+                                                        <Grid>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="*"/>
+                                                                <RowDefinition Height="*"/>
+                                                            </Grid.RowDefinitions>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                            </Grid.ColumnDefinitions>
+
+                                                            <Button x:Name="BtnCornerTL" Grid.Row="0" Grid.Column="0" Click="CornerZone_Click" Tag="TopLeft" Opacity="0.01" Cursor="Hand" ToolTip="Top-Left Corner"/>
+                                                            <Button x:Name="BtnCornerTR" Grid.Row="0" Grid.Column="1" Click="CornerZone_Click" Tag="TopRight" Opacity="0.01" Cursor="Hand" ToolTip="Top-Right Corner"/>
+                                                            <Button x:Name="BtnCornerBL" Grid.Row="1" Grid.Column="0" Click="CornerZone_Click" Tag="BottomLeft" Opacity="0.01" Cursor="Hand" ToolTip="Bottom-Left Corner"/>
+                                                            <Button x:Name="BtnCornerBR" Grid.Row="1" Grid.Column="1" Click="CornerZone_Click" Tag="BottomRight" Opacity="0.01" Cursor="Hand" ToolTip="Bottom-Right Corner"/>
+                                                        </Grid>
+
+                                                        <!-- Proportional Camera Badge -->
+                                                        <Border x:Name="MiniCameraBadge" 
+                                                                HorizontalAlignment="Right" VerticalAlignment="Bottom" 
+                                                                Width="35" Height="20" Margin="3"
+                                                                Background="#EF4444" CornerRadius="3" BorderBrush="#B91C1C" BorderThickness="1"
+                                                                IsHitTestVisible="False">
+                                                            <TextBlock x:Name="TxtMiniCameraBadge" Text="📷 Camera" FontSize="7.5" Foreground="#FFFFFF" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Position & Camera Aspect Selectors -->
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Position Dropdown -->
+                                            <StackPanel Grid.Column="0" Margin="0,0,2,0">
+                                                <TextBlock x:Name="TxtLblPosition" Text="Position:" FontSize="9" Foreground="#64748B"/>
+                                                <ComboBox x:Name="CmbCameraPosition" SelectedIndex="0" FontSize="9.5" Height="23"
+                                                          SelectionChanged="CmbCameraPosition_SelectionChanged">
+                                                    <ComboBoxItem x:Name="CmbPosBottomRight" Content="Bottom-Right"/>
+                                                    <ComboBoxItem x:Name="CmbPosBottomLeft" Content="Bottom-Left"/>
+                                                    <ComboBoxItem x:Name="CmbPosTopRight" Content="Top-Right"/>
+                                                    <ComboBoxItem x:Name="CmbPosTopLeft" Content="Top-Left"/>
+                                                </ComboBox>
+                                            </StackPanel>
+
+                                            <!-- Camera Aspect Dropdown -->
+                                            <StackPanel Grid.Column="1" Margin="2,0,0,0">
+                                                <TextBlock x:Name="TxtLblCameraAspect" Text="Camera Aspect:" FontSize="9" Foreground="#64748B"/>
+                                                <ComboBox x:Name="CmbCameraAspect" SelectedIndex="0" FontSize="9.5" Height="23"
+                                                          SelectionChanged="CmbCameraAspect_SelectionChanged">
+                                                    <ComboBoxItem x:Name="CmbCamAspect16x9" Content="16:9 Wide"/>
+                                                    <ComboBoxItem x:Name="CmbCamAspect4x3" Content="4:3 Classic"/>
+                                                    <ComboBoxItem x:Name="CmbCamAspect1x1" Content="1:1 Square"/>
+                                                    <ComboBoxItem x:Name="CmbCamAspect9x16" Content="9:16 Vertical"/>
+                                                    <ComboBoxItem x:Name="CmbCamAspectCustom" Content="🎛️ Custom Ratio"/>
+                                                </ComboBox>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <!-- Camera Size Slider & Presets -->
+                                        <StackPanel Margin="0,0,0,3">
+                                            <Grid Margin="0,0,0,1">
+                                                <TextBlock x:Name="TxtLblCameraSize" Text="Camera Size:" FontSize="9" Foreground="#64748B" HorizontalAlignment="Left"/>
+                                                <TextBlock x:Name="TxtCameraSizeVal" Text="%22" FontSize="9" FontWeight="Bold" Foreground="#2563EB" HorizontalAlignment="Right"/>
+                                            </Grid>
+                                            <Slider x:Name="SliderCameraSize" Minimum="10" Maximum="50" Value="22" 
+                                                    SmallChange="1" LargeChange="5" TickFrequency="5" IsSnapToTickEnabled="False"
+                                                    ValueChanged="SliderCameraSize_ValueChanged"/>
+                                            <Grid Margin="0,1,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Button Grid.Column="0" Content="%15" FontSize="8.5" Height="18" Margin="0,0,1,0" Click="BtnCamSizePreset_Click" Tag="15" Background="#E2E8F0" BorderThickness="0" Cursor="Hand"/>
+                                                <Button Grid.Column="1" Content="%22" FontSize="8.5" Height="18" Margin="1,0,1,0" Click="BtnCamSizePreset_Click" Tag="22" Background="#E2E8F0" BorderThickness="0" Cursor="Hand"/>
+                                                <Button Grid.Column="2" Content="%30" FontSize="8.5" Height="18" Margin="1,0,1,0" Click="BtnCamSizePreset_Click" Tag="30" Background="#E2E8F0" BorderThickness="0" Cursor="Hand"/>
+                                                <Button Grid.Column="3" Content="%40" FontSize="8.5" Height="18" Margin="1,0,0,0" Click="BtnCamSizePreset_Click" Tag="40" Background="#E2E8F0" BorderThickness="0" Cursor="Hand"/>
+                                            </Grid>
+                                        </StackPanel>
+
+                                        <!-- Custom Aspect Ratio Slider (Visible when "Özel En-Boy" is selected) -->
+                                        <StackPanel x:Name="PanelCustomAspect" Visibility="Collapsed" Margin="0,2,0,0">
+                                            <Grid Margin="0,0,0,1">
+                                                <TextBlock x:Name="TxtLblCustomAspect" Text="Custom Aspect Ratio:" FontSize="9" Foreground="#64748B" HorizontalAlignment="Left"/>
+                                                <TextBlock x:Name="TxtCustomAspectVal" Text="1.78 (16:9)" FontSize="9" FontWeight="Bold" Foreground="#D97706" HorizontalAlignment="Right"/>
+                                            </Grid>
+                                            <Slider x:Name="SliderCustomAspect" Minimum="0.5" Maximum="2.5" Value="1.777" 
+                                                    SmallChange="0.05" LargeChange="0.1" ValueChanged="SliderCustomAspect_ValueChanged"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Settings: Format & FPS -->
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="65"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Aspect Ratio / Format -->
+                                    <StackPanel Grid.Column="0" Margin="0,0,3,0">
+                                        <TextBlock x:Name="TxtLblAspectRatio" Text="Aspect &amp; Resolution:" FontSize="9.5" Foreground="#64748B" Margin="0,0,0,1"/>
+                                        <ComboBox x:Name="CmbAspectRatio" SelectedIndex="0" FontSize="10" Height="24"
+                                                  ToolTip="Recording aspect ratio and video resolution"
+                                                  SelectionChanged="CmbAspectRatio_SelectionChanged">
+                                            <ComboBoxItem x:Name="CmbAspectDoc" Content="📄 Fit to Document (Zero Blank)"/>
+                                            <ComboBoxItem x:Name="CmbAspect16x9Fhd" Content="📺 16:9 (Full HD 1080p)"/>
+                                            <ComboBoxItem x:Name="CmbAspect16x9Hd" Content="📺 16:9 (HD 720p)"/>
+                                            <ComboBoxItem x:Name="CmbAspect4x3" Content="🖥️ 4:3 (Classic Slide)"/>
+                                            <ComboBoxItem x:Name="CmbAspect9x16" Content="📱 9:16 (Vertical Video)"/>
+                                            <ComboBoxItem x:Name="CmbAspect1x1" Content="⏹️ 1:1 (Square Video)"/>
+                                        </ComboBox>
+                                    </StackPanel>
+
+                                    <!-- FPS -->
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="FPS:" FontSize="9.5" Foreground="#64748B" Margin="0,0,0,1"/>
+                                        <ComboBox x:Name="CmbFps" SelectedIndex="0" FontSize="10" Height="24">
+                                            <ComboBoxItem Content="30 FPS"/>
+                                            <ComboBoxItem Content="60 FPS"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Camera Selector -->
+                                <StackPanel Margin="0,0,0,4">
+                                    <TextBlock x:Name="TxtLblCamera" Text="Camera:" FontSize="9.5" Foreground="#64748B" Margin="0,0,0,1"/>
+                                    <ComboBox x:Name="CmbCameras" FontSize="10.5" Height="24" SelectionChanged="CmbCameras_SelectionChanged"/>
+                                </StackPanel>
+
+                                <!-- Microphone Selector & Volume & Live Meter -->
+                                <Border Margin="0,0,0,5" Background="#F1F5F9" CornerRadius="6" Padding="6,4">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,2">
+                                            <TextBlock x:Name="TxtLblMicrophone" Text="🎙️ Microphone:" FontSize="9.5" Foreground="#475569" FontWeight="SemiBold"/>
+                                            <!-- Live Audio Level Bar -->
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                <TextBlock x:Name="TxtLblMicLevel" Text="Vol: " FontSize="8.5" Foreground="#64748B"/>
+                                                <ProgressBar x:Name="PrgMicLevel" Width="65" Height="7" Minimum="0" Maximum="100" Value="0"
+                                                             Foreground="#10B981" Background="#CBD5E1" BorderThickness="0" VerticalAlignment="Center">
+                                                    <ProgressBar.Template>
+                                                        <ControlTemplate TargetType="ProgressBar">
+                                                            <Border Background="{TemplateBinding Background}" CornerRadius="3.5" ClipToBounds="True">
+                                                                <Grid x:Name="PART_Track">
+                                                                    <Border x:Name="PART_Indicator" Background="{TemplateBinding Foreground}" HorizontalAlignment="Left" CornerRadius="3.5"/>
+                                                                </Grid>
+                                                            </Border>
+                                                        </ControlTemplate>
+                                                    </ProgressBar.Template>
+                                                </ProgressBar>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <ComboBox x:Name="CmbMicrophones" FontSize="10" Height="23" Margin="0,0,0,3" SelectionChanged="CmbMicrophones_SelectionChanged"/>
+
+                                        <!-- Volume Slider -->
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock x:Name="TxtLblMicVolume" Grid.Column="0" Text="Level:" FontSize="9" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                            <Slider x:Name="SliderMicVolume" Grid.Column="1" Minimum="0" Maximum="100" Value="100" 
+                                                    ValueChanged="SliderMicVolume_ValueChanged" VerticalAlignment="Center"
+                                                    ToolTip="Microphone Volume"/>
+                                            <TextBlock x:Name="TxtMicVolumeVal" Grid.Column="2" Text="%100" FontSize="9" FontWeight="SemiBold" Foreground="#334155" VerticalAlignment="Center" Margin="4,0,0,0" Width="26"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Record Action Buttons -->
+                                <Grid Margin="0,1,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Start Button -->
+                                    <Button x:Name="BtnRecordStart" Grid.Column="0" Click="BtnRecordStart_Click" 
+                                            ToolTip="Record slide area and camera" Margin="0,0,3,0" Cursor="Hand">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="b" Background="#DC2626" CornerRadius="6" Padding="6,5">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="b" Property="Background" Value="#B91C1C"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsPressed" Value="True">
+                                                        <Setter TargetName="b" Property="Background" Value="#991B1B"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsEnabled" Value="False">
+                                                        <Setter TargetName="b" Property="Opacity" Value="0.4"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <TextBlock Text="🔴" FontSize="10" Margin="0,0,3,0" VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="TxtBtnRecordStart" Text="Start Recording" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+
+                                    <!-- Pause / Resume Button -->
+                                    <Button x:Name="BtnRecordPause" Grid.Column="1" Click="BtnRecordPause_Click" 
+                                            Style="{StaticResource ModernButtonStyle}" IsEnabled="False"
+                                            Padding="6,4" Margin="1,0" ToolTip="Pause / Resume Recording">
+                                        <TextBlock x:Name="TxtRecordPauseIcon" Text="⏸️" FontSize="10"/>
+                                    </Button>
+
+                                    <!-- Stop Button -->
+                                    <Button x:Name="BtnRecordStop" Grid.Column="2" Click="BtnRecordStop_Click" 
+                                            Style="{StaticResource ModernButtonStyle}" IsEnabled="False"
+                                            Padding="6,4" Margin="1,0" ToolTip="Stop and Save as MP4">
+                                        <TextBlock Text="⏹️" FontSize="10" Foreground="#DC2626"/>
+                                    </Button>
+
+                                    <!-- Show Recordings Folder Button -->
+                                    <Button x:Name="BtnShowRecordings" Grid.Column="3" Click="BtnShowRecordings_Click" 
+                                            Style="{StaticResource ModernButtonStyle}"
+                                            Padding="6,4" Margin="1,0,0,0" ToolTip="Open Recordings Folder (Videos\InkStudio Recordings)">
+                                        <TextBlock Text="📁" FontSize="10"/>
+                                    </Button>
+                                </Grid>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- CENTER DOCUMENT CANVAS -->
+            <ScrollViewer Grid.Column="1" x:Name="MainScrollViewer" 
+                          HorizontalScrollBarVisibility="Auto" 
+                          VerticalScrollBarVisibility="Auto"
+                          Background="#EAEAEA"
+                          PanningMode="None"
+                          PreviewMouseWheel="MainScrollViewer_PreviewMouseWheel"
+                          ManipulationBoundaryFeedback="ScrollViewer_ManipulationBoundaryFeedback">
+                <Grid x:Name="CanvasContainer" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="30"
+                      IsManipulationEnabled="True"
+                      ManipulationStarting="Canvas_ManipulationStarting"
+                      ManipulationDelta="Canvas_ManipulationDelta"
+                      ManipulationInertiaStarting="Canvas_ManipulationInertiaStarting"
+                      ManipulationBoundaryFeedback="ScrollViewer_ManipulationBoundaryFeedback">
+                    <!-- Zoom Transform Scale -->
+                    <Grid.LayoutTransform>
+                        <ScaleTransform x:Name="CanvasScale" ScaleX="1.0" ScaleY="1.0"/>
+                    </Grid.LayoutTransform>
+
+                    <!-- Document Paper with Drop Shadow -->
+                    <Border x:Name="DocumentPaperBorder" Background="#FFFFFF" CornerRadius="4" 
+                            Width="{Binding ElementName=InkLayer, Path=Width}"
+                            Height="{Binding ElementName=InkLayer, Path=Height}">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="20" ShadowDepth="4" Opacity="0.18" Direction="270" Color="#000000"/>
+                        </Border.Effect>
+
+                        <Grid>
+                            <!-- PDF or PPTX Rendered Page Image -->
+                            <Image x:Name="PageBackground" Stretch="Uniform" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+
+                            <!-- Hardware-Accelerated MPP 2.0 Ink Layer -->
+                            <controls:MppInkCanvas x:Name="InkLayer" 
+                                                   HorizontalAlignment="Stretch" 
+                                                   VerticalAlignment="Stretch"
+                                                   Background="Transparent"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- FOOTER STATUS & NAVIGATION BAR -->
+        <Border x:Name="FooterBar" Grid.Row="2" Background="#FFFFFF" BorderBrush="#E5E5E8" BorderThickness="0,1,0,0" Padding="16,6" Visibility="Collapsed">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/> <!-- Page Navigation -->
+                    <ColumnDefinition Width="*"/>    <!-- Live MPP Telemetry -->
+                    <ColumnDefinition Width="Auto"/> <!-- Zoom Controls -->
+                </Grid.ColumnDefinitions>
+
+                <!-- Page Navigation & Direct Page Jump -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="BtnPrevPage" Click="BtnPrevPage_Click" Style="{StaticResource ModernButtonStyle}" Padding="8,4">
+                        <TextBlock x:Name="TxtBtnPrevPage" Text="◀ Prev"/>
+                    </Button>
+                    
+                    <!-- Direct Page Input -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0">
+                        <TextBlock x:Name="TxtLblPage" Text="Page" VerticalAlignment="Center" Margin="0,0,6,0" FontSize="12" Foreground="#666"/>
+                        <TextBox x:Name="TxtJumpPage" Text="1" Width="44" Height="28" 
+                                 VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                                 FontSize="13" FontWeight="Bold" Foreground="#111"
+                                 KeyDown="TxtJumpPage_KeyDown" LostFocus="TxtJumpPage_LostFocus"
+                                 ToolTip="Type page number and press Enter">
+                            <TextBox.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="6"/>
+                                </Style>
+                            </TextBox.Resources>
+                        </TextBox>
+                        <TextBlock x:Name="TxtTotalPages" Text="/ 1" VerticalAlignment="Center" Margin="6,0,8,0" FontSize="13" FontWeight="SemiBold" Foreground="#666"/>
+                        <Button x:Name="BtnJumpPage" Click="BtnJumpPage_Click" Style="{StaticResource ModernButtonStyle}" Padding="8,3" ToolTip="Go to page">
+                            <TextBlock x:Name="TxtBtnJumpPage" Text="Go ➔" FontSize="12"/>
+                        </Button>
+                    </StackPanel>
+
+                    <Button x:Name="BtnNextPage" Click="BtnNextPage_Click" Style="{StaticResource ModernButtonStyle}" Padding="8,4">
+                        <TextBlock x:Name="TxtBtnNextPage" Text="Next ▶"/>
+                    </Button>
+                </StackPanel>
+
+                <!-- MPP 2.0 Live Telemetry -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock x:Name="TxtTelemetryDevice" Text="Pen: Not detected" FontSize="12" Foreground="#666" Margin="12,0"/>
+                    <TextBlock Text="|" Foreground="#DDD" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TxtTelemetryPressure" Text="Pressure: 0%" FontSize="12" Foreground="#666" Margin="12,0"/>
+                    <TextBlock Text="|" Foreground="#DDD" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TxtTelemetryTilt" Text="Tilt: 0°" FontSize="12" Foreground="#666" Margin="12,0"/>
+                    <TextBlock Text="|" Foreground="#DDD" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TxtTelemetryMode" Text="Mode: Pen draws, finger pans/zooms" FontSize="12" Foreground="#0067C0" FontWeight="SemiBold" Margin="12,0"/>
+                </StackPanel>
+
+                <!-- Zoom Controls -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="BtnZoomOut" Click="BtnZoomOut_Click" Style="{StaticResource ModernButtonStyle}" Padding="6,3" Margin="2" ToolTip="Zoom Out (-)">
+                        <TextBlock Text="➖"/>
+                    </Button>
+                    <TextBlock x:Name="TxtZoomLevel" Text="100%" VerticalAlignment="Center" Margin="6,0" FontSize="12" FontWeight="SemiBold"/>
+                    <Button x:Name="BtnZoomIn" Click="BtnZoomIn_Click" Style="{StaticResource ModernButtonStyle}" Padding="6,3" Margin="2" ToolTip="Zoom In (+)">
+                        <TextBlock Text="➕"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- LOADING PROGRESS OVERLAY -->
+        <Grid x:Name="LoadingOverlay" Grid.RowSpan="3" Background="#70000000" Visibility="Collapsed">
+            <Border Background="#FFFFFF" CornerRadius="16" Padding="36,28" HorizontalAlignment="Center" VerticalAlignment="Center" Width="430">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="35" ShadowDepth="8" Opacity="0.30" Color="#000000"/>
+                </Border.Effect>
+                <StackPanel HorizontalAlignment="Center">
+                    <Image Source="Assets/logo.png" Width="52" Height="52" Margin="0,0,0,14" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <TextBlock x:Name="TxtLoadingTitle" Text="Loading Document..." FontSize="16" FontWeight="Bold" Foreground="#1A1A1A" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                    <TextBlock x:Name="TxtLoadingSubtitle" Text="Scanning pages in high quality..." FontSize="13" Foreground="#666" HorizontalAlignment="Center" Margin="0,0,0,18"/>
+                    
+                    <!-- Solid, reliable progress bar track and fill indicator -->
+                    <Border x:Name="ProgressBarTrack" Background="#E8E8EC" CornerRadius="6" Height="12" Width="358" Margin="0,0,0,12" ClipToBounds="True">
+                        <Border x:Name="ProgressBarFill" Background="#0078D4" CornerRadius="6" HorizontalAlignment="Left" Width="0"/>
+                    </Border>
+                    
+                    <TextBlock x:Name="TxtLoadingPercent" Text="0% (0 / 0 Pages)" FontSize="13" FontWeight="Bold" Foreground="#0078D4" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- LECTURE START CHOICE MODAL -->
+        <Grid x:Name="LectureChoiceModal" Grid.RowSpan="3" Background="#70000000" Visibility="Collapsed">
+            <Border Background="#FFFFFF" CornerRadius="16" Padding="32,28" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="500">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="30" ShadowDepth="6" Opacity="0.25" Color="#000000"/>
+                </Border.Effect>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <TextBlock Text="🎥" FontSize="22" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtModalLectureTitle" Text="Lecture Recording Mode" FontSize="20" FontWeight="Bold" Foreground="#1E293B" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock x:Name="TxtModalLectureSubtitle" Text="Choose canvas for your lecture:" FontSize="13" Foreground="#64748B" Margin="0,0,0,18"/>
+
+                    <!-- Option 1: 16:9 Boş Beyaz Tahta -->
+                    <Button x:Name="BtnLectureChoice16x9" Click="BtnLectureChoice16x9_Click" 
+                            Style="{StaticResource ModernButtonStyle}" 
+                            HorizontalContentAlignment="Left" Padding="14,12" Margin="0,0,0,10" Background="#F8FAFC" BorderBrush="#E2E8F0">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="42" Height="42" CornerRadius="21" Background="#EFF6FF" Margin="0,0,14,0">
+                                <TextBlock Text="🖥️" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock x:Name="TxtModalChoice1Title" Text="16:9 Blank Canvas (Recommended)" FontSize="14" FontWeight="Bold" Foreground="#0078D4"/>
+                                <TextBlock x:Name="TxtModalChoice1Desc" Text="Widescreen whiteboard in Full HD (1920x1080) video ratio" FontSize="11" Foreground="#64748B"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Option 2: PDF Belgesi Seç -->
+                    <Button x:Name="BtnLectureChoicePdf" Click="BtnLectureChoicePdf_Click" 
+                            Style="{StaticResource ModernButtonStyle}" 
+                            HorizontalContentAlignment="Left" Padding="14,12" Margin="0,0,0,16" Background="#F8FAFC" BorderBrush="#E2E8F0">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="42" Height="42" CornerRadius="21" Background="#F0FDF4" Margin="0,0,14,0">
+                                <TextBlock Text="📑" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock x:Name="TxtModalChoice2Title" Text="Lecture on Document / Slides" FontSize="14" FontWeight="Bold" Foreground="#16A34A"/>
+                                <TextBlock x:Name="TxtModalChoice2Desc" Text="Open lecture slides or PDF document and annotate" FontSize="11" Foreground="#64748B"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Button>
+
+                    <Button x:Name="BtnLectureChoiceCancel" Click="BtnLectureChoiceCancel_Click" 
+                            Content="Cancel" HorizontalAlignment="Right" Padding="16,6"
+                            Style="{StaticResource ModernButtonStyle}"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>
