@@ -76,5 +76,21 @@ You can download the latest pre-compiled binary directly from [Releases](https:/
 
 ---
 
+## 🙏 Acknowledgements & Attributions
+
+InkStudio is built with the help of these incredible open-source projects and libraries:
+
+| Library | Purpose | License |
+| :--- | :--- | :--- |
+| [**WPF-UI**](https://github.com/lepoco/wpfui) | Modern Windows 11 Fluent Design System styling, controls, and animations. | MIT |
+| [**ScreenRecorderLib**](https://github.com/slinch/ScreenRecorderLib) | High-performance .NET screen, window, and audio recording powered by Windows Media Foundation. | MIT |
+| [**FlashCap**](https://github.com/kekyo/FlashCap) | High-speed, lightweight webcam capture library for DirectShow and MediaFoundation. | Apache-2.0 |
+| [**Docnet.Core**](https://github.com/GowenGit/docnet) | Fast, cross-platform PDF rendering engine powered by Google PDFium. | MIT |
+| [**DocumentFormat.OpenXml**](https://github.com/dotnet/Open-XML-SDK) | Official Microsoft SDK for parsing and extracting slides from PowerPoint (.pptx) presentations. | MIT |
+| [**PDFsharp**](https://github.com/empira/PDFsharp) | Vector-level PDF creation, page manipulation, and high-fidelity merged document exports. | MIT |
+
+---
+
 ## 📄 License
 This project is licensed under the [MIT License](LICENSE).
+
